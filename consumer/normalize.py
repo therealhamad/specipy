@@ -14,14 +14,27 @@ from typing import Any, Iterable, Mapping
 # compares against these literals, so they must not drift with the vendor.
 CANONICAL_STATUSES = ("completed", "pending", "failed", "unknown")
 
+# v2 replaced the flat 'transaction_status' string with a nested 'status'
+# object whose 'code' carries the vendor's new (differently-spelled) enum.
+_V2_STATUS_CODE_MAP = {
+    "SETTLED": "completed",
+    "AUTH_PENDING": "pending",
+    "DECLINED": "failed",
+}
+
 
 def normalize_payment(raw: Mapping[str, Any]) -> dict[str, Any]:
     """Flatten one provider payment into the app's internal representation."""
+    if "transaction_status" in raw:
+        status = raw.get("transaction_status") or "unknown"
+    else:
+        status_code = (raw.get("status") or {}).get("code")
+        status = _V2_STATUS_CODE_MAP.get(status_code, "unknown")
     return {
         "id": str(raw.get("id", "")),
         "amount_cents": int(raw.get("amount_cents") or 0),
         "currency": str(raw.get("currency", "")).lower(),
-        "status": raw.get("transaction_status") or "unknown",
+        "status": status,
         "created_at": str(raw.get("created_at", "")),
     }
 

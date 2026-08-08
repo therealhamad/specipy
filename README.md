@@ -74,12 +74,18 @@ make test          # 4 failures (all v2), 16 passes (all v1) — this is correct
 Watch it break, with no agent involved:
 
 ```bash
-make provider-v1   # :8001
-make consumer      # :8002  -> revenue $201.90
-# stop the provider, then:
-make provider-v2   # :8001
+make reset-demo    # restores the broken state, starts the provider on v1,
+                   # and verifies the baseline. Run this between rehearsals.
+make consumer      # :8002  -> revenue $276.40, real statuses
+# then, to show the silent breakage:
+make provider-v2   # :8001, replacing the v1 process
 # reload :8002     -> revenue $0.00, every status "unknown", no error anywhere
 ```
+
+`make reset-demo` is the one command to run between rehearsals: it discards any
+fix a previous run left in `consumer/`, asserts the contract test is red on v2
+and green on v1, and checks the dashboard against the provider's own payload
+rather than a hardcoded figure.
 
 Run the pipeline with no credentials (simulated, clearly labelled as such):
 

@@ -2,7 +2,7 @@ VENV ?= .venv
 PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 
-.PHONY: help install test provider-v1 provider-v2 consumer orchestrator demo \
+.PHONY: help install test reset-demo provider-v1 provider-v2 consumer orchestrator demo \
         baseline drift agent-create agent-update agent-show voice-check clean
 
 help:
@@ -13,6 +13,9 @@ install:  ## create the venv and install dependencies
 
 test:  ## run the fenced contract test
 	$(PY) -m pytest consumer/test_contract.py
+
+reset-demo:  ## between rehearsals: restore the broken state and verify the baseline
+	$(PY) -m scripts.reset_demo
 
 provider-v1:  ## serve the baseline provider on :8001
 	PROVIDER_VERSION=v1 $(VENV)/bin/uvicorn provider.app:app --port 8001 --reload

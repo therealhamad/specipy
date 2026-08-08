@@ -25,6 +25,16 @@ from typing import Any
 import httpx
 
 POLL_SECONDS = 5
+
+# Where the orchestrator's public URL comes from, in precedence order:
+#   1. --base-url / the ORCHESTRATOR_URL env var (the repo secret in CI)
+#   2. this file, committed at the repo root
+#
+# (2) exists because a tunnel URL is not a secret and a fine-grained PAT without
+# "Secrets: write" cannot set (1). It lets the push-triggered chain be exercised
+# without repo-admin access. Prefer the secret in production: it survives a
+# tunnel restart without a commit.
+ORCHESTRATOR_URL_FILE = ".orchestrator-url"
 REVIEWER_NOTE = (
     "> **Reviewer note.** `consumer/test_contract.py` is the fenced verification "
     "target. The agent is forbidden from editing it. **If this PR touches that "
@@ -184,10 +194,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=int, default=1500)
     args = parser.parse_args(argv)
 
-    base_url = args.base_url.rstrip("/")
+    base_url = (args.base_url or "").strip().rstrip("/")
+    source = "ORCHESTRATOR_URL secret/env"
+    if not base_url and os.path.exists(ORCHESTRATOR_URL_FILE):
+        with open(ORCHESTRATOR_URL_FILE) as fh:
+            base_url = fh.read().strip().rstrip("/")
+        source = ORCHESTRATOR_URL_FILE
     if not base_url:
-        print("ORCHESTRATOR_URL is not set.", file=sys.stderr)
+        print(
+            "No orchestrator URL. Set the ORCHESTRATOR_URL repo secret, or commit "
+            f"the URL to {ORCHESTRATOR_URL_FILE}.",
+            file=sys.stderr,
+        )
         return 2
+    print(f"orchestrator: {base_url}  (from {source})")
 
     with open(args.drift) as fh:
         drift = json.load(fh)

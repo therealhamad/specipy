@@ -1,0 +1,206 @@
+{
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Payment": {
+        "properties": {
+          "amount_cents": {
+            "description": "Amount charged, in the smallest unit of the currency.",
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "created_at": {
+            "description": "When the payment was created.",
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "description": "ISO-4217 currency code, lowercase.",
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier for the payment.",
+            "title": "Id",
+            "type": "string"
+          },
+          "transaction_status": {
+            "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue.",
+            "enum": [
+              "completed",
+              "pending",
+              "failed"
+            ],
+            "title": "Transaction Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "amount_cents",
+          "currency",
+          "transaction_status",
+          "created_at"
+        ],
+        "title": "Payment",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Returns payments with their transaction status.",
+    "title": "Acme Payments API",
+    "version": "2026-02-01"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Liveness probe. Also reports which version of the API is being served.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/payments": {
+      "get": {
+        "description": "List all payments for the authenticated merchant.",
+        "operationId": "list_payments_payments_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Payment"
+                  },
+                  "title": "Response List Payments Payments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Payments",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/payments/{payment_id}": {
+      "get": {
+        "description": "Retrieve a single payment by id.",
+        "operationId": "get_payment_payments__payment_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Payment",
+        "tags": [
+          "payments"
+        ]
+      }
+    }
+  }
+}

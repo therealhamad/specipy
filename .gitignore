@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.DS_Store
+
+# Generated per-run briefings. The cached fallback clip is committed.
+interface/static/audio/*
+!interface/static/audio/.gitkeep
+!interface/static/audio/fallback.wav
+!interface/static/audio/fallback.mp3
+
+# Local Claude Code settings
+.claude/settings.local.json

@@ -1,0 +1,375 @@
+{
+  "tool": "builtin",
+  "provider": {
+    "title": "Acme Payments API",
+    "base_version": "2026-02-01",
+    "revision_version": "2026-08-01",
+    "revision_notes": "Returns payments. This release also adds settlement references for cleared payments."
+  },
+  "breaking": [
+    {
+      "kind": "response-property-removed",
+      "operation": "GET /payments",
+      "location": "response.transaction_status",
+      "detail": "Response property 'transaction_status' (string) was removed. No deprecation notice was present in the previous version.",
+      "was": {
+        "type": "string",
+        "enum": [
+          "completed",
+          "pending",
+          "failed"
+        ],
+        "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue.",
+        "required": true
+      },
+      "documentation": {
+        "described": true,
+        "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
+      }
+    },
+    {
+      "kind": "response-property-removed",
+      "operation": "GET /payments/{payment_id}",
+      "location": "response.transaction_status",
+      "detail": "Response property 'transaction_status' (string) was removed. No deprecation notice was present in the previous version.",
+      "was": {
+        "type": "string",
+        "enum": [
+          "completed",
+          "pending",
+          "failed"
+        ],
+        "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue.",
+        "required": true
+      },
+      "documentation": {
+        "described": true,
+        "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
+      }
+    }
+  ],
+  "additive": [
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments",
+      "location": "response.settlement_reference",
+      "detail": "Response property 'settlement_reference' (string) is new.",
+      "now": {
+        "type": "string",
+        "enum": null,
+        "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined.",
+        "required": false
+      },
+      "documentation": {
+        "described": true,
+        "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined."
+      }
+    },
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments",
+      "location": "response.status",
+      "detail": "Response property 'status' (object) is new.",
+      "now": {
+        "type": "object",
+        "enum": null,
+        "description": "",
+        "required": true
+      },
+      "documentation": {
+        "described": false,
+        "description": "(no description provided by the vendor)"
+      }
+    },
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments",
+      "location": "response.status.code",
+      "detail": "Response property 'status.code' (string) is new.",
+      "now": {
+        "type": "string",
+        "enum": [
+          "SETTLED",
+          "AUTH_PENDING",
+          "DECLINED"
+        ],
+        "description": "",
+        "required": true
+      },
+      "documentation": {
+        "described": false,
+        "description": "(no description provided by the vendor)"
+      }
+    },
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments",
+      "location": "response.status.updated_at",
+      "detail": "Response property 'status.updated_at' (string) is new.",
+      "now": {
+        "type": "string",
+        "enum": null,
+        "description": "",
+        "required": true
+      },
+      "documentation": {
+        "described": false,
+        "description": "(no description provided by the vendor)"
+      }
+    },
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments/{payment_id}",
+      "location": "response.settlement_reference",
+      "detail": "Response property 'settlement_reference' (string) is new.",
+      "now": {
+        "type": "string",
+        "enum": null,
+        "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined.",
+        "required": false
+      },
+      "documentation": {
+        "described": true,
+        "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined."
+      }
+    },
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments/{payment_id}",
+      "location": "response.status",
+      "detail": "Response property 'status' (object) is new.",
+      "now": {
+        "type": "object",
+        "enum": null,
+        "description": "",
+        "required": true
+      },
+      "documentation": {
+        "described": false,
+        "description": "(no description provided by the vendor)"
+      }
+    },
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments/{payment_id}",
+      "location": "response.status.code",
+      "detail": "Response property 'status.code' (string) is new.",
+      "now": {
+        "type": "string",
+        "enum": [
+          "SETTLED",
+          "AUTH_PENDING",
+          "DECLINED"
+        ],
+        "description": "",
+        "required": true
+      },
+      "documentation": {
+        "described": false,
+        "description": "(no description provided by the vendor)"
+      }
+    },
+    {
+      "kind": "response-property-added",
+      "operation": "GET /payments/{payment_id}",
+      "location": "response.status.updated_at",
+      "detail": "Response property 'status.updated_at' (string) is new.",
+      "now": {
+        "type": "string",
+        "enum": null,
+        "description": "",
+        "required": true
+      },
+      "documentation": {
+        "described": false,
+        "description": "(no description provided by the vendor)"
+      }
+    }
+  ],
+  "summary": "Acme Payments API 2026-02-01 -> 2026-08-01: 1 breaking change(s) across 2 endpoints (3 of the changed fields carry no description): Response property 'transaction_status' (string) was removed. No deprecation notice was present in the previous version.",
+  "raw": {
+    "builtin": {
+      "breaking": [
+        {
+          "kind": "response-property-removed",
+          "operation": "GET /payments",
+          "location": "response.transaction_status",
+          "detail": "Response property 'transaction_status' (string) was removed. No deprecation notice was present in the previous version.",
+          "was": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "pending",
+              "failed"
+            ],
+            "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue.",
+            "required": true
+          },
+          "documentation": {
+            "described": true,
+            "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
+          }
+        },
+        {
+          "kind": "response-property-removed",
+          "operation": "GET /payments/{payment_id}",
+          "location": "response.transaction_status",
+          "detail": "Response property 'transaction_status' (string) was removed. No deprecation notice was present in the previous version.",
+          "was": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "pending",
+              "failed"
+            ],
+            "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue.",
+            "required": true
+          },
+          "documentation": {
+            "described": true,
+            "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
+          }
+        }
+      ],
+      "additive": [
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments",
+          "location": "response.settlement_reference",
+          "detail": "Response property 'settlement_reference' (string) is new.",
+          "now": {
+            "type": "string",
+            "enum": null,
+            "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined.",
+            "required": false
+          },
+          "documentation": {
+            "described": true,
+            "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined."
+          }
+        },
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments",
+          "location": "response.status",
+          "detail": "Response property 'status' (object) is new.",
+          "now": {
+            "type": "object",
+            "enum": null,
+            "description": "",
+            "required": true
+          },
+          "documentation": {
+            "described": false,
+            "description": "(no description provided by the vendor)"
+          }
+        },
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments",
+          "location": "response.status.code",
+          "detail": "Response property 'status.code' (string) is new.",
+          "now": {
+            "type": "string",
+            "enum": [
+              "SETTLED",
+              "AUTH_PENDING",
+              "DECLINED"
+            ],
+            "description": "",
+            "required": true
+          },
+          "documentation": {
+            "described": false,
+            "description": "(no description provided by the vendor)"
+          }
+        },
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments",
+          "location": "response.status.updated_at",
+          "detail": "Response property 'status.updated_at' (string) is new.",
+          "now": {
+            "type": "string",
+            "enum": null,
+            "description": "",
+            "required": true
+          },
+          "documentation": {
+            "described": false,
+            "description": "(no description provided by the vendor)"
+          }
+        },
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments/{payment_id}",
+          "location": "response.settlement_reference",
+          "detail": "Response property 'settlement_reference' (string) is new.",
+          "now": {
+            "type": "string",
+            "enum": null,
+            "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined.",
+            "required": false
+          },
+          "documentation": {
+            "described": true,
+            "description": "Reference issued by the settlement network once funds have cleared. Populated for settled payments only; null while a payment is still awaiting authorisation or if it was declined."
+          }
+        },
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments/{payment_id}",
+          "location": "response.status",
+          "detail": "Response property 'status' (object) is new.",
+          "now": {
+            "type": "object",
+            "enum": null,
+            "description": "",
+            "required": true
+          },
+          "documentation": {
+            "described": false,
+            "description": "(no description provided by the vendor)"
+          }
+        },
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments/{payment_id}",
+          "location": "response.status.code",
+          "detail": "Response property 'status.code' (string) is new.",
+          "now": {
+            "type": "string",
+            "enum": [
+              "SETTLED",
+              "AUTH_PENDING",
+              "DECLINED"
+            ],
+            "description": "",
+            "required": true
+          },
+          "documentation": {
+            "described": false,
+            "description": "(no description provided by the vendor)"
+          }
+        },
+        {
+          "kind": "response-property-added",
+          "operation": "GET /payments/{payment_id}",
+          "location": "response.status.updated_at",
+          "detail": "Response property 'status.updated_at' (string) is new.",
+          "now": {
+            "type": "string",
+            "enum": null,
+            "description": "",
+            "required": true
+          },
+          "documentation": {
+            "described": false,
+            "description": "(no description provided by the vendor)"
+          }
+        }
+      ]
+    },
+    "oasdiff_skipped": "docker unavailable; used built-in structural differ"
+  }
+}

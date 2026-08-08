@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Drift Auto-Adapt</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>API Drift Auto-Adapt</h1>
+      <p class="tagline">Dependabot for the APIs you don't control</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="sim-badge" class="badge badge-sim" hidden>simulated run</span>
+    <div class="toggle" role="tablist" aria-label="View mode">
+      <button id="mode-simple" class="active" role="tab" aria-selected="true">Simple</button>
+      <button id="mode-technical" role="tab" aria-selected="false">Technical</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="empty" class="panel empty">
+    <h2>No runs yet</h2>
+    <p>Push a change under <code>provider/</code> to trigger the real GitHub Actions
+       run, or start one from the committed sample diff:</p>
+    <button id="start-demo" class="primary">Run from sample diff</button>
+    <p class="hint" id="empty-hint"></p>
+  </section>
+
+  <!-- ------------------------------- SIMPLE ------------------------------ -->
+  <section id="simple" hidden>
+    <div class="panel status-panel">
+      <div class="status-row">
+        <div>
+          <div class="label">Status</div>
+          <div id="status-headline" class="headline">Waiting</div>
+          <div id="status-detail" class="detail"></div>
+        </div>
+        <div id="status-chip" class="chip">idle</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">What happened</div>
+      <ol id="timeline" class="timeline">
+        <li data-stage="detected"><span class="tick"></span><div><b>Change detected</b><i></i></div></li>
+        <li data-stage="mapping"><span class="tick"></span><div><b>Affected code found</b><i></i></div></li>
+        <li data-stage="fixing"><span class="tick"></span><div><b>Fix written</b><i></i></div></li>
+        <li data-stage="verifying"><span class="tick"></span><div><b>Fix verified against the contract test</b><i></i></div></li>
+        <li data-stage="reviewing"><span class="tick"></span><div><b>Ready for human review</b><i></i></div></li>
+      </ol>
+    </div>
+
+    <div class="panel" id="briefing-panel" hidden>
+      <div class="label">Spoken briefing</div>
+      <audio id="briefing-audio" controls preload="none"></audio>
+      <p id="briefing-text" class="briefing-text"></p>
+      <p id="briefing-source" class="hint"></p>
+    </div>
+
+    <div class="panel" id="plain-panel" hidden>
+      <div class="label">In plain terms</div>
+      <p id="plain-cause"></p>
+      <p id="plain-fix"></p>
+    </div>
+  </section>
+
+  <!-- ----------------------------- TECHNICAL ---------------------------- -->
+  <section id="technical" hidden>
+    <div class="grid">
+      <div class="panel">
+        <div class="label">Run</div>
+        <dl id="tech-meta" class="meta"></dl>
+      </div>
+      <div class="panel">
+        <div class="label">Verification</div>
+        <dl id="tech-verify" class="meta"></dl>
+        <pre id="tech-test-output" class="code" hidden></pre>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">Breaking changes <span id="diff-tool" class="badge"></span></div>
+      <div id="breaking-list" class="changes"></div>
+      <details>
+        <summary>Raw diff envelope</summary>
+        <pre id="raw-diff" class="code"></pre>
+      </details>
+    </div>
+
+    <div class="panel">
+      <div class="label">Code diff</div>
+      <pre id="code-diff" class="code diff">Waiting for the agent…</pre>
+    </div>
+
+    <div class="panel">
+      <div class="label">Agent activity</div>
+      <div id="agent-log" class="log"></div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

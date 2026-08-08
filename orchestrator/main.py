@@ -62,6 +62,7 @@ class DriftPayload(BaseModel):
     commit: str = ""
     provider_version: str = ""
     simulated: bool | None = None
+    expect_pr: bool = False
 
 
 def _start(payload: DriftPayload) -> Run:
@@ -79,6 +80,7 @@ def _start(payload: DriftPayload) -> Run:
             provider_version=payload.provider_version,
             drift=payload.drift,
             simulated=simulated,
+            expect_pr=payload.expect_pr,
         )
     )
 

@@ -23,7 +23,7 @@ import re
 import time
 from typing import Any
 
-from orchestrator import config, voice
+from orchestrator import config, slack, voice
 from orchestrator.prompts import build_kickoff
 from orchestrator.runs import Run, RunStore
 
@@ -44,6 +44,9 @@ _WRITE_TOOLS = {"write", "edit"}
 
 def drive_run(store: RunStore, run: Run) -> None:
     """Run one drift remediation to a terminal state. Never raises."""
+    # The detection alert goes out before any agent work starts, so the channel
+    # learns about the breakage at the same moment the pipeline does.
+    _announce_detected(store, run)
     try:
         if run.simulated:
             _run_simulated(store, run)
@@ -58,12 +61,16 @@ def drive_run(store: RunStore, run: Run) -> None:
                 "for a clearly-labelled simulated run."
             )
             store.set_status(run.id, "error", run.error)
+            # Close the Slack thread we opened, rather than leaving the channel
+            # with an "investigating now…" that never resolves.
+            _announce_resolved(store, run)
             return
 
         _run_live(store, run)
     except Exception as exc:  # a crashed driver must still resolve the run
         run.error = f"{type(exc).__name__}: {exc}"
         store.set_status(run.id, "error", run.error)
+        _announce_resolved(store, run)
 
 
 # --------------------------------------------------------------------------
@@ -367,21 +374,61 @@ def _finalise(
     _announce(store, run)
 
 
-def _announce(store: RunStore, run: Run) -> None:
-    """Produce the spoken briefing. Only on a verified fix, per the demo script."""
-    if run.status != "verified":
-        store.emit(run.id, "voice.skipped", reason=f"status is {run.status}")
+def _announce_detected(store: RunStore, run: Run) -> None:
+    """Slack message 1: a breaking change was confirmed."""
+    if not slack.enabled():
+        store.emit(run.id, "slack.skipped", reason="Slack not configured")
         return
-    text = run.spoken_summary or run.fix or "A verified fix is ready for review."
-    result = voice.synthesize(text, run.id)
-    run.audio_url = result.url
-    run.audio_source = result.source
+    result = slack.post_detected(run)
+    run.slack_thread_ts = result.ts
     store.emit(
         run.id,
-        "voice.ready",
-        audio_url=result.url,
-        audio_source=result.source,
-        text=text,
+        "slack.detected" if result.ok else "slack.error",
+        ok=result.ok,
+        thread_ts=result.ts,
+        detail=result.detail,
+    )
+
+
+def _announce(store: RunStore, run: Run) -> None:
+    """Produce the spoken briefing, then post the threaded Slack resolution.
+
+    Voice first: the SSE relay waits briefly for one event after the terminal
+    status, and Slack can take tens of seconds when it waits for CI's PR.
+    """
+    if run.status == "verified":
+        text = run.spoken_summary or run.fix or "A verified fix is ready for review."
+        result = voice.synthesize(text, run.id)
+        run.audio_url = result.url
+        run.audio_source = result.source
+        store.emit(
+            run.id,
+            "voice.ready",
+            audio_url=result.url,
+            audio_source=result.source,
+            text=text,
+            detail=result.detail,
+        )
+    else:
+        store.emit(run.id, "voice.skipped", reason=f"status is {run.status}")
+
+    _announce_resolved(store, run)
+
+
+def _announce_resolved(store: RunStore, run: Run) -> None:
+    """Slack message 2: threaded reply with the outcome, audio and PR link."""
+    if not slack.enabled():
+        return
+    # Only wait for a pull request when CI is the one opening it.
+    wait = config.SLACK_PR_WAIT_SECONDS if run.expect_pr else 0
+    if wait:
+        store.emit(run.id, "log", message=f"Waiting up to {wait}s for CI to open the PR")
+    result = slack.post_resolved(run, run.slack_thread_ts, pr_wait_seconds=wait)
+    store.emit(
+        run.id,
+        "slack.resolved" if result.ok else "slack.error",
+        ok=result.ok,
+        threaded=bool(run.slack_thread_ts),
         detail=result.detail,
     )
 

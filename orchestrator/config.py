@@ -38,6 +38,15 @@ MAYA_MODEL = os.getenv("MAYA_MODEL", "Maya 2 Native").strip()
 MAYA_VOICE = os.getenv("MAYA_VOICE", "").strip()
 MAYA_LANGUAGE = os.getenv("MAYA_LANGUAGE", "en").strip()
 
+# --- Slack ----------------------------------------------------------------
+# Bot token (xoxb-...) with chat:write and files:write. Not the MCP connection:
+# MCP is only reachable from inside an agent session, and the detection alert
+# has to go out before the agent starts.
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN", "").strip()
+SLACK_CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID", "").strip()
+# How long to wait for CI to open the PR before posting the resolution message.
+SLACK_PR_WAIT_SECONDS = int(os.getenv("SLACK_PR_WAIT_SECONDS", "45"))
+
 # --- Behaviour ------------------------------------------------------------
 # DEMO_MODE replays a scripted run instead of driving a real CMA session. It is
 # the fallback for judging, and it is labelled as simulated in the UI so a

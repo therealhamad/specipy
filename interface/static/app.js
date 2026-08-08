@@ -252,6 +252,10 @@ const LOG_BODY = {
   "session.status": (e) => e.session_status,
   "voice.ready": (e) => `${e.audio_source} ${e.detail || ""}`.trim(),
   "voice.skipped": (e) => e.reason,
+  "slack.detected": (e) => `thread ${e.thread_ts} — ${e.detail || ""}`,
+  "slack.resolved": (e) => `${e.threaded ? "threaded" : "unthreaded"} — ${e.detail || ""}`,
+  "slack.skipped": (e) => e.reason,
+  "slack.error": (e) => e.detail,
 };
 
 function appendLog(event) {

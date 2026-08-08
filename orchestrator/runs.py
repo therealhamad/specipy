@@ -40,6 +40,11 @@ class Run:
     session_id: str | None = None
     console_url: str | None = None
 
+    # Set by CI so the orchestrator knows to wait for a pull request before it
+    # posts the Slack resolution message.
+    expect_pr: bool = False
+    slack_thread_ts: str | None = None
+
     attempts: int = 0
     pushed: bool = False
     root_cause: str | None = None
@@ -178,6 +183,8 @@ class RunStore:
             "is_terminal": run.is_terminal,
             "session_id": run.session_id,
             "console_url": run.console_url,
+            "slack_thread_ts": run.slack_thread_ts,
+            "expect_pr": run.expect_pr,
             "attempts": run.attempts,
             "pushed": run.pushed,
             "root_cause": run.root_cause,

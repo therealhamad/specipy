@@ -227,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
         ),
         "commit": os.getenv("GITHUB_SHA", ""),
         "provider_version": os.getenv("PROVIDER_VERSION", ""),
+        # Lets the orchestrator wait for this PR before posting to Slack.
+        "expect_pr": True,
     }
 
     print(f"POST {base_url}/drift  branch={args.branch}")

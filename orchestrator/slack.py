@@ -87,13 +87,14 @@ def _endpoints(drift: dict[str, Any]) -> list[str]:
     return seen
 
 
-def _describe_change(drift: dict[str, Any]) -> str:
-    """A one-line 'old -> new' for the alert.
+def _describe_change(drift: dict[str, Any]) -> list[str]:
+    """The removed field, and separately the *guessed* replacement.
 
     Display-only heuristic: the removed field had an enum, so an added field
     that also has an enum is the most likely replacement. The agent does the
-    real mapping — this must not be read as a verified conclusion, so an
-    inferred replacement is marked as such.
+    real mapping, so these are returned as two clearly separate lines — a
+    viewer must never mistake this inference for the confirmed result that
+    message 2 reports.
     """
     removed = []
     for change in drift.get("breaking") or ():
@@ -112,16 +113,25 @@ def _describe_change(drift: dict[str, Any]) -> str:
             other_added.append(name)
 
     if not removed:
-        return "see the diff"
+        return ["*Change:* see the diff"]
 
-    old = ", ".join(f"`{name}`" for name in removed)
+    lines = [f"*Removed:* {', '.join(f'`{name}`' for name in removed)}"]
     if candidates_with_enum:
-        new = ", ".join(f"`{name}`" for name in candidates_with_enum)
-        return f"{old} → {new}  _(replacement inferred, not yet confirmed)_"
-    if other_added:
+        guess = ", ".join(f"`{name}`" for name in candidates_with_enum)
+        lines.append(
+            f"*Possible replacement:* {guess}   :grey_question: _guess only — "
+            "inferred from the spec's shape, not verified. The agent determines "
+            "the real mapping._"
+        )
+    elif other_added:
         new = ", ".join(f"`{name}`" for name in other_added[:3])
-        return f"{old} removed; new fields: {new}"
-    return f"{old} removed, with no replacement in the spec"
+        lines.append(
+            f"*New fields in the response:* {new}   :grey_question: _any "
+            "replacement here is unverified._"
+        )
+    else:
+        lines.append("*Possible replacement:* none in the spec")
+    return lines
 
 
 def _detected_text(run: Any) -> str:
@@ -134,7 +144,7 @@ def _detected_text(run: Any) -> str:
         "A breaking change just shipped from a vendor your codebase depends on.",
         "",
         f"*Endpoint:* {', '.join(f'`{e}`' for e in endpoints) or 'unknown'}",
-        f"*Change:* {_describe_change(drift)}",
+        *_describe_change(drift),
         f"*Severity:* Breaking — {count} endpoint{'s' if count != 1 else ''} affected",
         "",
         "Investigating impact and generating a fix now…",
@@ -163,9 +173,16 @@ def _resolved_text(run: Any, pr_url: str | None, issue_url: str | None) -> str:
             f":white_check_mark: *Fixed & verified — {_vendor(drift)} drift*",
             "",
             run.spoken_summary or run.fix or "A verified fix is ready for review.",
-            "",
-            f":page_facing_up: {file_line}",
         ]
+        # State the confirmed mapping explicitly, so the thread ends on a
+        # verified fact rather than leaving the earlier guess as the last word.
+        if run.root_cause:
+            lines += [
+                "",
+                f":white_check_mark: *Confirmed:* {run.root_cause}",
+                "_Verified by `consumer/test_contract.py`, which the agent cannot modify._",
+            ]
+        lines += ["", f":page_facing_up: {file_line}"]
         if pr_url:
             lines.append(f":link: Pull request: {pr_url}")
         else:

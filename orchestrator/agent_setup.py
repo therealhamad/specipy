@@ -207,14 +207,28 @@ def show() -> int:
                 ok = False
             else:
                 data = repo.json()
-                perms = data.get("permissions") or {}
                 print(f"[x] repo {slug} reachable (private={data.get('private')})")
-                print(f"    permissions: {perms}")
-                if not perms.get("push"):
-                    print("[ ] token lacks push — the agent's final git push WILL fail")
-                    ok = False
+
+                # Do NOT trust data["permissions"]: that is the *user's* rights on
+                # the repo, not the token's. A fine-grained PAT with only
+                # metadata:read still reads a public repo and still reports
+                # push=true there. The only honest check is to attempt a write.
+                probe = httpx.post(
+                    f"https://api.github.com/repos/{slug}/git/blobs",
+                    headers=headers,
+                    json={"content": "preflight", "encoding": "utf-8"},
+                    timeout=30,
+                )
+                if probe.status_code in (200, 201):
+                    print("[x] token can write (Contents: Read and write confirmed)")
                 else:
-                    print("[x] token can push (Contents: Read and write)")
+                    granted = probe.headers.get("x-accepted-github-permissions", "?")
+                    print(f"[ ] token CANNOT write — HTTP {probe.status_code}, "
+                          f"granted permissions: {granted}")
+                    print("    The agent's git push will fail at the end of an otherwise")
+                    print("    good session. Grant this PAT 'Contents: Read and write' on")
+                    print(f"    {slug} (fine-grained tokens are per-repository).")
+                    ok = False
 
                 branch = httpx.get(
                     f"https://api.github.com/repos/{slug}/branches/{config.GITHUB_BASE_BRANCH}",

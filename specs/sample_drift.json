@@ -1,5 +1,5 @@
 {
-  "tool": "builtin",
+  "tool": "oasdiff",
   "provider": {
     "title": "Acme Payments API",
     "base_version": "2026-02-01",
@@ -25,7 +25,10 @@
       "documentation": {
         "described": true,
         "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
-      }
+      },
+      "corroborated_by": [
+        "response-required-property-removed"
+      ]
     },
     {
       "kind": "response-property-removed",
@@ -45,7 +48,10 @@
       "documentation": {
         "described": true,
         "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
-      }
+      },
+      "corroborated_by": [
+        "response-required-property-removed"
+      ]
     }
   ],
   "additive": [
@@ -208,7 +214,10 @@
           "documentation": {
             "described": true,
             "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
-          }
+          },
+          "corroborated_by": [
+            "response-required-property-removed"
+          ]
         },
         {
           "kind": "response-property-removed",
@@ -228,7 +237,10 @@
           "documentation": {
             "described": true,
             "description": "Lifecycle state of the transaction. 'completed' means funds have been captured and the payment can be recognised as revenue."
-          }
+          },
+          "corroborated_by": [
+            "response-required-property-removed"
+          ]
         }
       ],
       "additive": [
@@ -370,6 +382,153 @@
         }
       ]
     },
-    "oasdiff_skipped": "docker unavailable; used built-in structural differ"
+    "oasdiff": {
+      "diff": {
+        "info": {
+          "description": {
+            "from": "Returns payments with their transaction status.",
+            "to": "Returns payments. This release also adds settlement references for cleared payments."
+          },
+          "version": {
+            "from": "2026-02-01",
+            "to": "2026-08-01"
+          }
+        },
+        "paths": {
+          "modified": {
+            "/payments": {
+              "operations": {
+                "modified": {
+                  "GET": {
+                    "responses": {
+                      "modified": {
+                        "200": {
+                          "content": {
+                            "modified": {
+                              "application/json": {
+                                "schema": {
+                                  "items": {
+                                    "required": {
+                                      "added": [
+                                        "status"
+                                      ],
+                                      "deleted": [
+                                        "transaction_status"
+                                      ]
+                                    },
+                                    "properties": {
+                                      "added": [
+                                        "settlement_reference",
+                                        "status"
+                                      ],
+                                      "deleted": [
+                                        "transaction_status"
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "/payments/{payment_id}": {
+              "operations": {
+                "modified": {
+                  "GET": {
+                    "responses": {
+                      "modified": {
+                        "200": {
+                          "content": {
+                            "modified": {
+                              "application/json": {
+                                "schema": {
+                                  "required": {
+                                    "added": [
+                                      "status"
+                                    ],
+                                    "deleted": [
+                                      "transaction_status"
+                                    ]
+                                  },
+                                  "properties": {
+                                    "added": [
+                                      "status",
+                                      "settlement_reference"
+                                    ],
+                                    "deleted": [
+                                      "transaction_status"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "components": {
+          "schemas": {
+            "added": [
+              "PaymentStatus"
+            ],
+            "modified": {
+              "Payment": {
+                "required": {
+                  "added": [
+                    "status"
+                  ],
+                  "deleted": [
+                    "transaction_status"
+                  ]
+                },
+                "properties": {
+                  "added": [
+                    "status",
+                    "settlement_reference"
+                  ],
+                  "deleted": [
+                    "transaction_status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "breaking": [
+        {
+          "id": "response-required-property-removed",
+          "text": "removed the required property `items/transaction_status` from the response with the `200` status",
+          "level": 3,
+          "operation": "GET",
+          "operationId": "list_payments_payments_get",
+          "path": "/payments",
+          "section": "paths",
+          "fingerprint": "c803ce9ab88e"
+        },
+        {
+          "id": "response-required-property-removed",
+          "text": "removed the required property `transaction_status` from the response with the `200` status",
+          "level": 3,
+          "operation": "GET",
+          "operationId": "get_payment_payments__payment_id__get",
+          "path": "/payments/{payment_id}",
+          "section": "paths",
+          "fingerprint": "74086061e94c"
+        }
+      ]
+    }
   }
 }

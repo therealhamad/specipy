@@ -33,7 +33,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 
-PROVIDER_VERSION = os.getenv("PROVIDER_VERSION", "v1").strip().lower()
+PROVIDER_VERSION = os.getenv("PROVIDER_VERSION", "v2").strip().lower()
 if PROVIDER_VERSION not in {"v1", "v2"}:
     raise RuntimeError(f"PROVIDER_VERSION must be v1 or v2, got {PROVIDER_VERSION!r}")
 

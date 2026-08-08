@@ -86,6 +86,15 @@ _PAYMENTS: list[dict[str, Any]] = [
         "updated_at": "2026-08-07T08:30:46Z",
         "settlement_reference": None,
     },
+    {
+        "id": "pay_6b19f2",
+        "amount_cents": 7450,
+        "currency": "usd",
+        "state": "completed",
+        "created_at": "2026-08-08T07:12:30Z",
+        "updated_at": "2026-08-08T07:12:34Z",
+        "settlement_reference": "stl_2026080800937",
+    },
 ]
 
 # v1 vocabulary -> v2 vocabulary. Nothing in the v2 spec spells this out.

@@ -1,0 +1,214 @@
+name: API drift watch
+
+# Real trigger: any push that changes the provider. The provider is in this
+# repo for the demo, but the only thing this job actually needs is a spec to
+# diff — swap the export step for a fetch against a vendor's /openapi.json and
+# the rest of the pipeline is unchanged.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "provider/**"
+  workflow_dispatch:
+    inputs:
+      provider_version:
+        description: Provider version to export and diff
+        type: choice
+        options: [v2, v1]
+        default: v2
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: api-drift
+  cancel-in-progress: false
+
+jobs:
+  detect-and-adapt:
+    runs-on: ubuntu-latest
+    env:
+      PROVIDER_VERSION: ${{ inputs.provider_version || 'v2' }}
+      # The agent pushes from inside its sandbox via the git proxy, so this
+      # branch name has to be decided here and passed through unchanged.
+      BRANCH: api-drift/${{ github.run_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Export the spec the pushed provider code serves
+        run: python -m provider.export_spec > /tmp/openapi.json
+
+      - name: Diff against the committed baseline
+        id: diff
+        run: |
+          python -m scripts.detect_drift \
+            specs/provider.baseline.json /tmp/openapi.json \
+            --out /tmp/drift.json
+          echo "breaking=$(python -c "import json;print(len(json.load(open('/tmp/drift.json'))['breaking']))")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the drift envelope
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-envelope
+          path: /tmp/drift.json
+
+      - name: No breaking changes — stop here
+        if: steps.diff.outputs.breaking == '0'
+        run: echo "Spec changed but nothing breaking. Nothing to adapt."
+
+      # ---- everything below only runs when something actually broke ----
+
+      - name: Drive the agent and wait for a verdict
+        id: agent
+        if: steps.diff.outputs.breaking != '0'
+        env:
+          ORCHESTRATOR_URL: ${{ secrets.ORCHESTRATOR_URL }}
+        run: |
+          python -m scripts.ci_notify \
+            --drift /tmp/drift.json \
+            --branch "$BRANCH" \
+            --body-out /tmp/pr_body.md
+
+      # The prompt fence is an instruction; this is the enforcement. A branch
+      # that edits the contract test, or reaches outside consumer/, is not
+      # allowed to be presented as verified no matter what the agent reported.
+      - name: Check the fence held
+        id: fence
+        if: steps.diff.outputs.breaking != '0' && steps.agent.outputs.pushed == 'true'
+        run: |
+          set -euo pipefail
+          git fetch origin "$BRANCH"
+          CHANGED=$(git diff --name-only "origin/${{ github.ref_name }}...origin/$BRANCH" | sed '/^$/d')
+          echo "files changed on the branch:"
+          echo "$CHANGED" | sed 's/^/  /'
+
+          # Deliberately not using `grep -qv`: BSD and GNU grep disagree on its
+          # exit status, so a test-only check can pass on one and silently do
+          # nothing on the other. Capture the matches and test for emptiness.
+          VIOLATIONS=""
+
+          TOUCHED_TEST=$(echo "$CHANGED" | grep -x 'consumer/test_contract.py' || true)
+          if [ -n "$TOUCHED_TEST" ]; then
+            VIOLATIONS="the fenced contract test was modified"
+          fi
+
+          OUT_OF_SCOPE=$(echo "$CHANGED" | grep -vE '^consumer/' || true)
+          if [ -n "$OUT_OF_SCOPE" ]; then
+            LIST=$(echo "$OUT_OF_SCOPE" | paste -sd, -)
+            VIOLATIONS="${VIOLATIONS:+$VIOLATIONS; }files outside consumer/ were modified ($LIST)"
+          fi
+
+          # A conftest.py or pytest config can neuter the contract test without
+          # editing it, so those count as tampering too.
+          HARNESS=$(echo "$CHANGED" | grep -E '(^|/)(conftest\.py|pytest\.ini|tox\.ini|pyproject\.toml|setup\.cfg)$' || true)
+          if [ -n "$HARNESS" ]; then
+            LIST=$(echo "$HARNESS" | paste -sd, -)
+            VIOLATIONS="${VIOLATIONS:+$VIOLATIONS; }test harness config was modified ($LIST)"
+          fi
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Fence violated — $VIOLATIONS"
+            echo "held=false" >> "$GITHUB_OUTPUT"
+            echo "reason=$VIOLATIONS" >> "$GITHUB_OUTPUT"
+          else
+            echo "fence held"
+            echo "held=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open the pull request
+        if: steps.diff.outputs.breaking != '0' && steps.agent.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFIED: ${{ steps.agent.outputs.verified }}
+          FENCE_HELD: ${{ steps.fence.outputs.held }}
+          FENCE_REASON: ${{ steps.fence.outputs.reason }}
+        run: |
+          set -euo pipefail
+
+          if [ "$FENCE_HELD" != "true" ]; then
+            TITLE="Adapt to Acme Payments API drift (REJECT — fence violated)"
+            {
+              echo "## :no_entry: Fence violated — do not merge"
+              echo
+              echo "This branch $FENCE_REASON."
+              echo
+              echo "The agent's verdict is void: a fix that changes the verification"
+              echo "target has not been verified. Close this PR."
+              echo
+              echo "---"
+              echo
+              cat /tmp/pr_body.md
+            } > /tmp/pr_body_final.md
+          elif [ "$VERIFIED" = "true" ]; then
+            TITLE="Adapt to Acme Payments API drift (verified)"
+            cp /tmp/pr_body.md /tmp/pr_body_final.md
+          else
+            TITLE="Adapt to Acme Payments API drift (NEEDS HUMAN — unverified)"
+            cp /tmp/pr_body.md /tmp/pr_body_final.md
+          fi
+
+          PR_URL=$(gh pr create \
+            --base "${{ github.ref_name }}" \
+            --head "$BRANCH" \
+            --title "$TITLE" \
+            --body-file /tmp/pr_body_final.md)
+          echo "opened $PR_URL"
+
+          gh label create api-drift --color 6AA6FF \
+            --description "Opened by the API drift agent" 2>/dev/null || true
+          gh pr edit "$PR_URL" --add-label api-drift || true
+
+          if [ "$VERIFIED" != "true" ] || [ "$FENCE_HELD" != "true" ]; then
+            gh label create needs-human --color E8B93F \
+              --description "Agent could not verify a fix" 2>/dev/null || true
+            gh pr edit "$PR_URL" --add-label needs-human || true
+          fi
+
+          # A fence violation is a genuine pipeline failure, not a soft outcome.
+          if [ "$FENCE_HELD" != "true" ]; then
+            echo "::error::Refusing to present this branch as verified."
+            exit 1
+          fi
+
+      # The verifier-fail path has to be defined even when there is no branch to
+      # review: the agent only pushes after the contract test passes, so a run
+      # that never got there leaves nothing to open a PR against. File it
+      # instead of silently succeeding.
+      - name: File an issue when there is nothing to review
+        if: steps.diff.outputs.breaking != '0' && steps.agent.outputs.pushed != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh label create needs-human --color E8B93F \
+            --description "Agent could not verify a fix" 2>/dev/null || true
+          gh issue create \
+            --title "API drift detected but not fixed (run ${{ github.run_id }})" \
+            --body-file /tmp/pr_body.md \
+            --label needs-human
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### API drift watch"
+            echo
+            echo "- provider version: \`$PROVIDER_VERSION\`"
+            echo "- breaking changes: \`${{ steps.diff.outputs.breaking }}\`"
+            echo "- branch: \`$BRANCH\`"
+            echo "- verdict: \`${{ steps.agent.outputs.status || 'not run' }}\`"
+            echo "- pushed: \`${{ steps.agent.outputs.pushed || 'false' }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

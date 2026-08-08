@@ -134,7 +134,7 @@ _NOTES = {
     # Mentions the additive field. Says nothing about the removal.
     "v2": (
         "Returns payments. This release also adds settlement references for "
-        "cleared payments."
+        "cleared payments and improves settlement latency."
     ),
 }
 
